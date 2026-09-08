@@ -525,6 +525,185 @@ export default function App() {
     X.writeFile(wb,"PDQLayout_"+new Date().toISOString().slice(0,10)+".xlsx");
   };
 
+  const exportPDF = () => {
+    const J = window.jspdf;
+    if (!J) { alert("PDF library still loading, try again."); return; }
+    if (!savedShelves.length) { alert("Save at least one shelf first."); return; }
+    const { jsPDF } = J;
+    const doc = new jsPDF({ orientation:"landscape", unit:"mm", format:"letter" });
+    const PW=279, PH=216, M=15;
+    const hr = h => { if(h.length===4) h="#"+h[1]+h[1]+h[2]+h[2]+h[3]+h[3]; return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]; };
+    const lt = (r,g,b) => [Math.min(255,r+Math.round((255-r)*0.8)),Math.min(255,g+Math.round((255-g)*0.8)),Math.min(255,b+Math.round((255-b)*0.8))];
+
+    // ── Shelf pages ──────────────────────────────────────────────────────────
+    savedShelves.forEach((sh, si) => {
+      if (si > 0) doc.addPage();
+      const tray=sh.tray||{l:12,w:8};
+      const od=sh.outer||{l:round4(tray.l+WALL),w:round4(tray.w+WALL)};
+      const vp=(sh.pls||[]).filter(p=>!p.invalid);
+      const cm=sh.colorMap||{};
+
+      // Header
+      doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(0);
+      doc.text(sh.name, M, M+5);
+      doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(100);
+      doc.text(`${sh.shape==="oval"?"Basket":"Tray"}  ·  ${od.l}"x${od.w}" outer  /  ${tray.l}"x${tray.w}" inner  ·  Saved: ${sh.savedAt}`, M, M+11);
+      doc.setTextColor(0);
+
+      // Shelf visual
+      const vX=M, vY=M+17, vmW=130, vmH=PH-vY-M-12;
+      const sc=Math.min(vmW/od.l,vmH/od.w);
+      const ow=od.l*sc, oh=od.w*sc, iw=tray.l*sc, ih=tray.w*sc;
+      const ix=vX+(ow-iw)/2, iy=vY+(oh-ih)/2;
+
+      doc.setFillColor(241,241,241); doc.setDrawColor(0,0,0); doc.setLineWidth(0.8);
+      sh.shape==="oval" ? doc.ellipse(vX+ow/2,vY+oh/2,ow/2,oh/2,"FD") : doc.roundedRect(vX,vY,ow,oh,1.5,1.5,"FD");
+
+      doc.setFillColor(255,255,255); doc.setDrawColor(170,170,170); doc.setLineWidth(0.3);
+      doc.setLineDashPattern([1.5,1],0);
+      sh.shape==="oval" ? doc.ellipse(vX+ow/2,vY+oh/2,iw/2,ih/2,"FD") : doc.rect(ix,iy,iw,ih,"FD");
+      doc.setLineDashPattern([],0);
+
+      if(sh.shape!=="oval"){
+        doc.setDrawColor(225,225,225); doc.setLineWidth(0.1);
+        for(let ci=1;ci<Math.floor(tray.l);ci++) doc.line(ix+ci*sc,iy,ix+ci*sc,iy+ih);
+        for(let ri=1;ri<Math.floor(tray.w);ri++) doc.line(ix,iy+ri*sc,ix+iw,iy+ri*sc);
+      }
+
+      vp.forEach(pl => {
+        const p=allProds.find(x=>x.id===pl.pid); if(!p) return;
+        const col=cm[pl.pid+"|"+pl.ai]||"#888888";
+        const [r,g,b]=hr(col); const [lr,lg,lb]=lt(r,g,b);
+        const px=ix+pl.x*sc, py=iy+pl.y*sc, pw=p.l*sc, ph=p.w*sc;
+        doc.setFillColor(lr,lg,lb); doc.setDrawColor(r,g,b); doc.setLineWidth(0.5);
+        isRect(p) ? doc.roundedRect(px,py,pw,ph,0.8,0.8,"FD") : doc.ellipse(px+pw/2,py+ph/2,pw/2,ph/2,"FD");
+        const fs=Math.max(5,Math.min(9,Math.min(pw,ph)*0.42));
+        doc.setFontSize(fs); doc.setFont("helvetica","bold"); doc.setTextColor(r,g,b);
+        doc.text(al(pl.ai), px+pw/2, py+ph/2+fs*0.2, {align:"center"});
+      });
+
+      doc.setFontSize(6.5); doc.setFont("helvetica","normal"); doc.setTextColor(120);
+      doc.text(`${od.l}" outer  ·  ${tray.l}" inner`, vX+ow/2, vY+oh+4, {align:"center"});
+
+      const units=vp.reduce((s,pl)=>s+(pl.layers||1),0);
+      const stripY=vY+oh+10;
+      [["POSITIONS",vp.length],["UNITS",units],["WEIGHT",(sh.wt||0).toFixed(2)+" lbs"],["LIMIT",sh.wtLimitI||"–"]].forEach(([lbl,val],i)=>{
+        const sx=vX+i*33;
+        doc.setFontSize(6); doc.setFont("helvetica","normal"); doc.setTextColor(120);
+        doc.text(lbl, sx, stripY);
+        doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(0);
+        doc.text(String(val), sx, stripY+5.5);
+      });
+
+      // Product table
+      const tX=M+vmW+8, tW=PW-tX-M;
+      let ty=M+17;
+      const grp={};
+      vp.forEach(pl=>{const k=pl.pid+"|"+pl.ai;if(!grp[k])grp[k]={c:0,ly:pl.layers||1,pid:pl.pid,ai:pl.ai};grp[k].c++;});
+      const cW=[tW*0.38,tW*0.08,tW*0.09,tW*0.09,tW*0.1,tW*0.13,tW*0.13];
+      const cHdrs=["Product","Asst","Rows","Lyr","Total","Unit wt","Tot wt"];
+      doc.setFillColor(50,50,50); doc.rect(tX,ty,tW,5.5,"F");
+      doc.setFontSize(6.5); doc.setFont("helvetica","bold"); doc.setTextColor(255);
+      let cx=tX+1.5;
+      cHdrs.forEach((h,i)=>{ doc.text(h,i===0?cx:cx+cW[i]-1.5,ty+3.8,{align:i===0?"left":"right"}); cx+=cW[i]; });
+      ty+=5.5;
+      Object.keys(grp).forEach((k,ri)=>{
+        const g2=grp[k]; const p=allProds.find(x=>x.id===g2.pid); if(!p) return;
+        if(ri%2===0){doc.setFillColor(248,248,248);doc.rect(tX,ty,tW,5.5,"F");}
+        const col=cm[k]||PALETTE[ri%PALETTE.length]; const [cr,cg,cb]=hr(col);
+        doc.setFillColor(cr,cg,cb); doc.circle(tX+1.8,ty+2.75,1.1,"F");
+        doc.setFontSize(6.5); doc.setFont("helvetica","normal"); doc.setTextColor(0);
+        cx=tX+4;
+        [p.name,al(g2.ai),String(g2.c),String(g2.ly),String(g2.c*g2.ly),p.wt?p.wt.toFixed(2):"–",p.wt?(p.wt*g2.c*g2.ly).toFixed(2):"–"].forEach((v,vi)=>{
+          doc.text(v,vi===0?cx:cx+cW[vi]-1.5,ty+3.8,{align:vi===0?"left":"right",maxWidth:cW[vi]-1.5});
+          cx+=cW[vi];
+        });
+        doc.setDrawColor(230,230,230); doc.setLineWidth(0.1); doc.line(tX,ty+5.5,tX+tW,ty+5.5);
+        ty+=5.5;
+      });
+    });
+
+    // ── Summary page ─────────────────────────────────────────────────────────
+    doc.addPage();
+    doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(0);
+    doc.text("All Shelves — Summary", M, M+5);
+    const totUnits=savedShelves.reduce((s,sh)=>(sh.pls||[]).filter(p=>!p.invalid).reduce((a,pl)=>a+(pl.layers||1),s),0);
+    const totPos=savedShelves.reduce((s,sh)=>s+(sh.pls||[]).filter(p=>!p.invalid).length,0);
+    [["Shelves",savedShelves.length],["Positions",totPos],["Units",totUnits],["Total Weight",totalData.grandWt.toFixed(2)+" lbs"]].forEach(([lbl,val],i)=>{
+      const bx=M+i*60,bY=M+12;
+      doc.setFillColor(245,245,245); doc.roundedRect(bx,bY,56,15,1.5,1.5,"F");
+      doc.setFontSize(6.5); doc.setFont("helvetica","normal"); doc.setTextColor(120);
+      doc.text(lbl.toUpperCase(),bx+3,bY+4.5);
+      doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(0);
+      doc.text(String(val),bx+3,bY+12);
+    });
+    let sy=M+33;
+    const sW=PW-M*2;
+    const sC=["Shelf","Type","Outer","Inner","Pos","Units","Weight","Limit","Status"];
+    const sCW=[sW*0.18,sW*0.08,sW*0.1,sW*0.1,sW*0.08,sW*0.08,sW*0.1,sW*0.08,sW*0.1];
+    doc.setFillColor(50,50,50); doc.rect(M,sy,sW,5.5,"F");
+    doc.setFontSize(6.5); doc.setFont("helvetica","bold"); doc.setTextColor(255);
+    let cx2=M+1;
+    sC.forEach((h,i)=>{ doc.text(h,i===0?cx2:cx2+sCW[i]-1,sy+3.8,{align:i===0?"left":"right"}); cx2+=sCW[i]; });
+    sy+=5.5; doc.setTextColor(0);
+    savedShelves.forEach((sh,i)=>{
+      const vp=(sh.pls||[]).filter(p=>!p.invalid);
+      const units=vp.reduce((s,pl)=>s+(pl.layers||1),0);
+      const ov=sh.wtLimitI&&sh.wt>parseFloat(sh.wtLimitI);
+      const o=sh.outer||{};
+      if(i%2===0){doc.setFillColor(248,248,248);doc.rect(M,sy,sW,5.5,"F");}
+      doc.setFont("helvetica","normal"); doc.setFontSize(6.5); cx2=M+1;
+      [sh.name,sh.shape==="oval"?"Basket":"Tray",`${o.l||"?"}x${o.w||"?"}`,`${sh.tray?sh.tray.l:"?"}x${sh.tray?sh.tray.w:"?"}`,String(vp.length),String(units),sh.wt?sh.wt.toFixed(2):"–",sh.wtLimitI||"–",ov?"OVER":"OK"].forEach((v,vi)=>{
+        if(vi===8&&ov)doc.setTextColor(192,57,43); else doc.setTextColor(0);
+        doc.text(v,vi===0?cx2:cx2+sCW[vi]-1,sy+3.8,{align:vi===0?"left":"right",maxWidth:sCW[vi]-1});
+        cx2+=sCW[vi];
+      });
+      doc.setDrawColor(230,230,230); doc.setLineWidth(0.1); doc.line(M,sy+5.5,M+sW,sy+5.5);
+      sy+=5.5;
+    });
+
+    // ── Totals page ───────────────────────────────────────────────────────────
+    doc.addPage();
+    doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(0);
+    doc.text("Product Totals — All Shelves", M, M+5);
+    [["SKUs",totalData.byProd.length],["Total Units",totalData.grandQty],["Total Weight",totalData.grandWt.toFixed(2)+" lbs"]].forEach(([lbl,val],i)=>{
+      const bx=M+i*65,bY=M+12;
+      doc.setFillColor(245,245,245); doc.roundedRect(bx,bY,60,15,1.5,1.5,"F");
+      doc.setFontSize(6.5); doc.setFont("helvetica","normal"); doc.setTextColor(120);
+      doc.text(lbl.toUpperCase(),bx+3,bY+4.5);
+      doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(0);
+      doc.text(String(val),bx+3,bY+12);
+    });
+    let ty2=M+33;
+    const tW2=PW-M*2;
+    const tC2=["Product","Units","Unit Wt (lbs)","Total Wt (lbs)"];
+    const tCW2=[tW2*0.55,tW2*0.15,tW2*0.15,tW2*0.15];
+    doc.setFillColor(50,50,50); doc.rect(M,ty2,tW2,5.5,"F");
+    doc.setFontSize(6.5); doc.setFont("helvetica","bold"); doc.setTextColor(255);
+    cx2=M+1;
+    tC2.forEach((h,i)=>{ doc.text(h,i===0?cx2:cx2+tCW2[i]-1,ty2+3.8,{align:i===0?"left":"right"}); cx2+=tCW2[i]; });
+    ty2+=5.5; doc.setTextColor(0);
+    totalData.byProd.forEach((r,i)=>{
+      if(i%2===0){doc.setFillColor(248,248,248);doc.rect(M,ty2,tW2,5.5,"F");}
+      doc.setFont("helvetica","normal"); doc.setFontSize(6.5); cx2=M+1;
+      [r.name,String(r.totalQty),r.unitWt?r.unitWt.toFixed(2):"–",r.totalWt?r.totalWt.toFixed(2):"–"].forEach((v,vi)=>{
+        doc.text(v,vi===0?cx2:cx2+tCW2[vi]-1,ty2+3.8,{align:vi===0?"left":"right",maxWidth:tCW2[vi]-1});
+        cx2+=tCW2[vi];
+      });
+      doc.setDrawColor(230,230,230); doc.setLineWidth(0.1); doc.line(M,ty2+5.5,M+tW2,ty2+5.5);
+      ty2+=5.5;
+    });
+    doc.setFillColor(240,240,240); doc.rect(M,ty2,tW2,6,"F");
+    doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(0);
+    doc.text("Grand Total", M+1, ty2+4);
+    cx2=M+tCW2[0]+tCW2[1];
+    doc.text(String(totalData.grandQty), cx2-1, ty2+4, {align:"right"});
+    cx2+=tCW2[2]+tCW2[3];
+    doc.text(totalData.grandWt.toFixed(2), cx2-1, ty2+4, {align:"right"});
+
+    doc.save("PDQLayout_"+new Date().toISOString().slice(0,10)+".pdf");
+  };
+
   const inp={padding:"4px 7px",border:"1px solid #ccc",borderRadius:6,fontSize:12,background:"#fafafa",color:"#111",width:"100%",boxSizing:"border-box",outline:"none"};
   const cell={padding:"5px 8px",fontSize:11,borderBottom:"0.5px solid #e8e8e8",color:"#222",whiteSpace:"nowrap"};
   const hcell=Object.assign({},cell,{fontSize:10,color:"#666",fontWeight:500,background:"#f5f5f5"});
@@ -747,6 +926,7 @@ export default function App() {
           {!showTotal&&shelves.some(s=>(s.pls||[]).filter(p=>!p.invalid).length>0) && tbtn("Save All",saveAll,false,false)}
           {tbtn(snapEnabled?"Snap on":"Free drag",()=>setSnapEnabled(s=>!s),false,snapEnabled)}
           {tbtn("Export XLSX",exportXLSX,!xlsxReady||!savedShelves.length,false)}
+          {tbtn("Export PDF",exportPDF,!pdfReady||!savedShelves.length,false)}
           {tbtn("Export Layout",exportJSON,false,false)}
           <label style={{padding:"5px 10px",border:"0.5px solid #ccc",borderRadius:6,background:"#f5f5f5",color:"#333",cursor:"pointer",fontSize:11,fontWeight:500,display:"inline-flex",alignItems:"center"}}>
             Import Layout<input type="file" accept=".json" onChange={importJSON} style={{display:"none"}}/>
