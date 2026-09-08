@@ -278,6 +278,7 @@ export default function App() {
   const [globalWtI,setGlobalWtI]=useState("");
   const [resetPend,setResetPend]=useState(false);
   const [xlsxReady,setXlsxReady]=useState(false);
+  const [pdfReady,setPdfReady]=useState(false);
   const resetTimer=useRef(null), saveTimer=useRef(null), wrapRef=useRef(null);
 
   useEffect(() => {
@@ -285,6 +286,14 @@ export default function App() {
     const s = document.createElement("script");
     s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
     s.onload = () => setXlsxReady(true);
+    document.head.appendChild(s);
+  }, []);
+
+  useEffect(() => {
+    if (window.jspdf) { setPdfReady(true); return; }
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+    s.onload = () => setPdfReady(true);
     document.head.appendChild(s);
   }, []);
 
