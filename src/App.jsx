@@ -1,11 +1,12 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 
-const BRANDS = ["Bath & Body","Kids Bath & Body","Baby Bath & Body"];
-const RESET_BUCKETS = new Set(["Bath & Body|Travel Size","Bath & Body|Mini's","Bath & Body|Standard Size","Kids Bath & Body|Standard Size","Baby Bath & Body|Standard Size"]);
+const BRANDS = ["Bath & Body","Kids Bath & Body","Baby Bath & Body","Kits"];
+const RESET_BUCKETS = new Set(["Bath & Body|Travel Size","Bath & Body|Mini's","Bath & Body|Standard Size","Kids Bath & Body|Standard Size","Baby Bath & Body|Standard Size","Kits|Kits"]);
 const BRAND_COLORS = {
   "Bath & Body": {hdr:"#3d6b2a",hdrTxt:"#fff",bucketHdr:"#4e7f36",bucketTxt:"#fff",light:"#eaf5e2",border:"#5a9440"},
   "Kids Bath & Body":{hdr:"#0e6b6b",hdrTxt:"#fff",bucketHdr:"#1a8080",bucketTxt:"#fff",light:"#ddf1f1",border:"#1a9999"},
   "Baby Bath & Body":{hdr:"#4a3d8a",hdrTxt:"#fff",bucketHdr:"#5c4ea8",bucketTxt:"#fff",light:"#f0edf9",border:"#7060c0"},
+  "Kits":{hdr:"#8a4a1f",hdrTxt:"#fff",bucketHdr:"#a85c2a",bucketTxt:"#fff",light:"#f9efe6",border:"#c07a40"},
 };
 const PALETTE = ["#e63946","#f4a261","#2a9d8f","#4361ee","#9b2335","#e9c46a","#7b2d8b","#43aa8b","#f79d65","#264653","#6a994e","#4895ef"];
 const GRID = 0.25, WALL = 0.4375;
@@ -47,11 +48,37 @@ const PRODUCTS = [
   {id:"bm_cl165",brand:"Baby Bath & Body",bucket:"Small/Other", name:"Baby Calming Lotion 16.5oz", cat:"Baby Lotion",l:3.75, w:1.88, wt:1.30},
   {id:"bm_hbw20",brand:"Baby Bath & Body",bucket:"Standard Size",name:"Baby Hair & Body Wash 20oz", cat:"Baby Wash", l:1.95, w:4.15, wt:1.50},
   {id:"bm_bl20", brand:"Baby Bath & Body",bucket:"Standard Size",name:"Baby Lotion 20oz", cat:"Baby Lotion",l:1.95, w:4.15, wt:1.50},
+  // Kits — from MPL "Kits" tab. Weight = Case Wt (lbs) ÷ Master Case qty.
+  {id:"k_778158",brand:"Kits",bucket:"Kits",name:"TH Lip Kit - 1 Lip Scrub, 2 Butters", cat:"Kit", l:6.50, w:1.50, wt:0.150},
+  {id:"k_778159",brand:"Kits",bucket:"Kits",name:"TH Lip Kit - Lip Butter Trio (3 Lip Butters)", cat:"Kit", l:2.44, w:1.88, wt:0.163},
+  {id:"k_778125",brand:"Kits",bucket:"Kits",name:"TH Gift Set: Vanilla Mini Best Sellers Kit (National)", cat:"Kit", l:6.00, w:5.25, wt:1.033},
+  {id:"k_778137",brand:"Kits",bucket:"Kits",name:"TH Kit Whipped and Tipsy", cat:"Kit", l:6.00, w:5.25, wt:1.033},
+  {id:"k_778137b",brand:"Kits",bucket:"Kits",name:"Tree Hut Espresso Martini Kit", cat:"Kit", l:6.00, w:5.25, wt:1.033},
+  {id:"k_778142",brand:"Kits",bucket:"Kits",name:"TH Everything Shower Gift Set - Tropic Glow", cat:"Kit", l:6.00, w:5.25, wt:1.033},
+  {id:"k_778143",brand:"Kits",bucket:"Kits",name:"TH Everything Shower Gift Set - Vanilla", cat:"Kit", l:6.00, w:5.25, wt:1.033},
+  {id:"k_778176",brand:"Kits",bucket:"Kits",name:"TH Everything Shower Gift Set - Pink Hibiscus", cat:"Kit", l:6.00, w:5.25, wt:1.033},
+  {id:"k_778202",brand:"Kits",bucket:"Kits",name:"TH Everything Shower Gift Set - Tropic Glow (STICKER)", cat:"Kit", l:6.00, w:5.25, wt:1.033},
+  {id:"k_778203",brand:"Kits",bucket:"Kits",name:"TH Everything Shower Gift Set - Vanilla (STICKER)", cat:"Kit", l:6.00, w:5.25, wt:1.033},
+  {id:"k_778128",brand:"Kits",bucket:"Kits",name:"TH Gift Set: Land of Sweets Mighty Mini Trio (Ulta)", cat:"Kit", l:3.00, w:3.00, wt:1.050},
+  {id:"k_778149",brand:"Kits",bucket:"Kits",name:"TH Kit Frosted Fairytale Mighty Mini Trio", cat:"Kit", l:3.00, w:3.00, wt:1.650},
+  {id:"k_778166",brand:"Kits",bucket:"Kits",name:"TH Kit Very Vanilla (TVB, Golden Vanilla, Vanilla 5.5oz)", cat:"Kit", l:3.00, w:3.00, wt:1.650},
+  {id:"k_778170",brand:"Kits",bucket:"Kits",name:"TH Kit Mighty Mini Trio Canada", cat:"Kit", l:3.00, w:3.00, wt:1.650},
+  {id:"k_778173",brand:"Kits",bucket:"Kits",name:"TH Angel Cake Gift Set", cat:"Kit", l:3.00, w:3.00, wt:1.650},
+  {id:"k_778175",brand:"Kits",bucket:"Kits",name:"TH Mini Fan Favorites Kit", cat:"Kit", l:2.00, w:2.00, wt:1.333},
+  {id:"k_778163",brand:"Kits",bucket:"Kits",name:"TH Obsessions Collection Kit", cat:"Kit", l:2.00, w:2.00, wt:1.333},
+  {id:"k_778164",brand:"Kits",bucket:"Kits",name:"TH Merry Berry Holiday Kit", cat:"Kit", l:3.70, w:3.70, wt:2.600},
+  {id:"k_778131",brand:"Kits",bucket:"Kits",name:"TH Gift Set: Frosted Sweets Gift Set (Target)", cat:"Kit", l:5.63, w:3.63, wt:2.025},
+  {id:"k_778160",brand:"Kits",bucket:"Kits",name:"TH Gift Set: Merry Mint Gift Set (Canada)", cat:"Kit", l:6.63, w:3.63, wt:1.283},
+  {id:"k_778146",brand:"Kits",bucket:"Kits",name:"TH Kit Holly Jolly Jelly Bear Minis Kit", cat:"Kit", l:5.50, w:3.75, wt:2.617},
+  {id:"k_778134",brand:"Kits",bucket:"Kits",name:"TH Candy Cane Lane Gift Set", cat:"Kit", l:4.96, w:4.13, wt:2.000},
+  {id:"k_778189",brand:"Kits",bucket:"Kits",name:"TH Pineapple & Coconut Lime 18oz Duo Scrub Kit", cat:"Kit", l:3.81, w:3.81, wt:2.825},
+  {id:"k_778177",brand:"Kits",bucket:"Kits",name:"TH 6 Days of Holiday Kit", cat:"Kit", l:8.50, w:2.17, wt:1.967},
+  {id:"k_778152",brand:"Kits",bucket:"Kits",name:"TH Gift Set Back to School Kit (Canada)", cat:"Kit", l:11.28,w:3.09, wt:2.738},
 ];
 
 const al = ai => String.fromCharCode(97 + ai);
 const isScrub = p => /shea sugar scrub/i.test(p.name);
-const isRect = p => Math.max(p.l,p.w)/Math.min(p.l,p.w) > 1.15 || isScrub(p);
+const isRect = p => p.brand === "Kits" || Math.max(p.l,p.w)/Math.min(p.l,p.w) > 1.15 || isScrub(p);
 const clamp = (v,lo,hi) => Math.max(lo,Math.min(hi,v));
 const snapv = v => Math.round(v/GRID)*GRID;
 const round4 = v => +Number(v).toFixed(4);
@@ -295,26 +322,6 @@ export default function App() {
   const savedSnap=savedShelves.find(s=>s.shelfId===active.id)||null;
   const isSaved=!!savedSnap;
   const hasChanges=isSaved&&JSON.stringify([active.pls,active.wtLimitI,active.shape,active.tray,active.outer])!==JSON.stringify([savedSnap.pls,savedSnap.wtLimitI,savedSnap.shape,savedSnap.tray,savedSnap.outer]);
-
-  /* ── Live capacity meter — total footprint area of entered quantities vs. usable area ── */
-  const trayArea = useMemo(() => {
-    return active.shape === "oval" ? Math.PI * (tray.l / 2) * (tray.w / 2) : tray.l * tray.w;
-  }, [active.shape, tray.l, tray.w]);
-
-  const usedArea = useMemo(() => {
-    let area = 0;
-    allProds.forEach(p => {
-      const q = qtys[p.id];
-      if (!q || !q.eachArr) return;
-      q.eachArr.forEach(e => { area += ((e && e.qty) || 0) * p.l * p.w; });
-    });
-    return area;
-  }, [allProds, qtys]);
-
-  const capPct = trayArea > 0 ? (usedArea / trayArea) * 100 : 0;
-  const capBarPct = Math.min(100, capPct);
-  const capColor = capPct > 100 ? "#e24b4a" : capPct > 85 ? "#ef9f27" : "#1d9e75";
-  const capOver = capPct > 100;
 
   const summaryRows=useMemo(()=>{
     const m={};
@@ -697,21 +704,6 @@ export default function App() {
               <input value={active.spacingI||""} onChange={e=>upd({spacingI:e.target.value.replace(/[^0-9.]/g,"")})} style={Object.assign({},inp,{width:60,textAlign:"center"})}/>
             </div>
           </div>
-
-          {hdr("#4a5b7c","Capacity (footprint area)")}
-          <div style={{padding:"8px 10px",background:"#fff"}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-              <span style={{fontSize:10,color:"#666"}}>{Math.round(usedArea)} / {Math.round(trayArea)} in²</span>
-              <span style={{fontSize:10,fontWeight:600,color:capColor}}>{capPct.toFixed(0)}%</span>
-            </div>
-            <div style={{height:6,background:"#e0e0e0",borderRadius:3,overflow:"hidden"}}>
-              <div style={{height:"100%",width:capBarPct+"%",background:capColor,borderRadius:3,transition:"width 0.15s ease"}}/>
-            </div>
-            {capOver && (
-              <div style={{fontSize:9.5,color:"#c0392b",marginTop:5}}>Entered quantities exceed the usable area — some items won't fit even before auto-arranging.</div>
-            )}
-          </div>
-
           {hdr("#666","Weight Limits (lbs)")}
           <div style={{padding:"8px 10px",background:"#fff",borderBottom:activeWt>0?"1px solid #e0e0e0":"none"}}>
             <div style={{display:"flex",gap:6}}>
