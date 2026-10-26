@@ -269,6 +269,9 @@ export default function App() {
   const [collBuckets,setCollBuckets]=useState(new Set(RESET_BUCKETS));
   const [globalWtI,setGlobalWtI]=useState("");
   const [resetPend,setResetPend]=useState(false);
+  const [panelW,setPanelW]=useState(296);
+  const [resizing,setResizing]=useState(false);
+  const panelDragRef=useRef(false);
   const [xlsxReady,setXlsxReady]=useState(false);
   const [pdfReady,setPdfReady]=useState(false);
   const resetTimer=useRef(null),wrapRef=useRef(null);
@@ -288,6 +291,14 @@ export default function App() {
   },[]);
 
   useEffect(()=>{if(selectedId&&wrapRef.current)wrapRef.current.focus();},[selectedId]);
+
+  // Side panel resize
+  useEffect(()=>{
+    const mv=e=>{if(!panelDragRef.current)return;setPanelW(clamp(e.clientX,220,700));};
+    const mu=()=>{if(panelDragRef.current){panelDragRef.current=false;setResizing(false);}};
+    window.addEventListener("mousemove",mv);window.addEventListener("mouseup",mu);
+    return()=>{window.removeEventListener("mousemove",mv);window.removeEventListener("mouseup",mu);};
+  },[]);
 
   const allProds=useMemo(()=>PRODUCTS.concat(custom),[custom]);
   const idx=Math.min(activeIdx,shelves.length-1);
@@ -648,9 +659,9 @@ export default function App() {
   const legend=Object.keys(colorMap).map(k=>{const pid=k.split("|")[0],ai=parseInt(k.split("|")[1],10);const p=allProds.find(x=>x.id===pid);return p?{key:k,color:colorMap[k],prod:p,ai}:null;}).filter(Boolean);
 
   return (
-    <div style={{display:"flex",height:"100vh",background:"#e8e8e8",fontFamily:"system-ui,sans-serif",overflow:"hidden"}}>
+    <div style={{display:"flex",height:"100vh",background:"#e8e8e8",fontFamily:"system-ui,sans-serif",overflow:"hidden",userSelect:resizing?"none":"auto"}}>
       {/* LEFT PANEL */}
-      <div style={{width:296,background:"#f0f0f0",borderRight:"1px solid #ccc",display:"flex",flexDirection:"column",overflow:"hidden",flexShrink:0}}>
+      <div style={{width:panelW,background:"#f0f0f0",display:"flex",flexDirection:"column",overflow:"hidden",flexShrink:0}}>
         <div style={{padding:"10px 12px",background:"#1a1a1a"}}>
           <div style={{fontSize:13,fontWeight:600,color:"#fff"}}>PDQ Layout Planner</div>
           <div style={{fontSize:10,color:"#aaa",marginTop:2}}>Product fitting & arrangement tool</div>
@@ -815,6 +826,15 @@ export default function App() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* RESIZE HANDLE */}
+      <div
+        onMouseDown={e=>{e.preventDefault();panelDragRef.current=true;setResizing(true);}}
+        onDoubleClick={()=>setPanelW(296)}
+        title="Drag to resize · double-click to reset"
+        style={{width:6,flexShrink:0,cursor:"col-resize",background:resizing?"#4361ee":"#ccc",display:"flex",alignItems:"center",justifyContent:"center",transition:resizing?"none":"background 0.15s"}}>
+        <div style={{width:2,height:28,borderLeft:"1px solid rgba(255,255,255,0.7)",borderRight:"1px solid rgba(255,255,255,0.7)"}}/>
       </div>
 
       {/* RIGHT PANEL */}
