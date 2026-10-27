@@ -32,6 +32,7 @@ const PDQ_PRESETS = [
   {name:"Body / Hand Wash Tray, 12 ct",         cad:"NAT162A", id:[11.625,8.75]},
   {name:"Lotion Pump Tray, 24 ct",              cad:"NAT173A", id:[14.25, 9.50]},
   {name:"Scrub + Whipped Butter Tray, 24 ct",   cad:"NAT164A", id:[15.00, 11.125]},
+  {name:"Everyday Kit Tray, 8 ct",              cad:"NAT166A", id:[10.375,9.25]},
   // ---- Shipper dimension only — tray I.D. estimated ----
   {name:"Scrub Duo Box, 2 ct",                            shipper:[3.70, 3.70]},
   {name:"Shave Oil Duo Box, 2 ct",                        shipper:[4.63, 2.38]},
@@ -116,8 +117,8 @@ const PRODUCTS = [
   {id:"k_03",brand:"Kits",bucket:"Kits",name:"Travel Scrub Quad (4 pc)", cat:"Kit", l:2.00, w:2.00, wt:1.333},
   {id:"k_04",brand:"Kits",bucket:"Kits",name:"Mini Scrub Trio (3 pc)", cat:"Kit", l:3.00, w:3.00, wt:1.650},
   {id:"k_06",brand:"Kits",bucket:"Kits",name:"Scrub + Whipped Butter + Lip Butter Kit (3 pc)", cat:"Kit", l:3.00, w:3.00, wt:1.650},
-  {id:"k_07",brand:"Kits",bucket:"Kits",name:"Mini Wash + Mist + Scrub + Shave Oil Kit (4 pc)", cat:"Kit", l:6.00, w:5.25, wt:1.033},
-  {id:"k_08",brand:"Kits",bucket:"Kits",name:"Mini Wash + Whipped Butter + Scrub + Shave Oil Kit (4 pc)", cat:"Kit", l:6.00, w:5.25, wt:1.033},
+  {id:"k_07",brand:"Kits",bucket:"Kits",name:"Mini Wash + Mist + Scrub + Shave Oil Kit (4 pc)", cat:"Kit", l:5.1875, w:2.3125, wt:1.033},
+  {id:"k_08",brand:"Kits",bucket:"Kits",name:"Mini Wash + Whipped Butter + Scrub + Shave Oil Kit (4 pc)", cat:"Kit", l:5.1875, w:2.3125, wt:1.033},
   {id:"k_09",brand:"Kits",bucket:"Kits",name:"Mini Wash + Whipped Butter + Scrub + Lip Mask Kit (4 pc)", cat:"Kit", l:6.00, w:5.25, wt:1.033},
   {id:"k_10",brand:"Kits",bucket:"Kits",name:"Scrub + Whipped Butter + Lip Butter Kit, large (3 pc)", cat:"Kit", l:3.70, w:3.70, wt:2.600},
   {id:"k_11",brand:"Kits",bucket:"Kits",name:"Scrub Duo, full size (2 pc)", cat:"Kit", l:3.81, w:3.81, wt:2.825},
