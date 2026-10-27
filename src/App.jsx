@@ -8,6 +8,68 @@ const BRAND_COLORS = {
   "Baby Bath & Body":{hdr:"#4a3d8a",hdrTxt:"#fff",bucketHdr:"#5c4ea8",bucketTxt:"#fff",light:"#f0edf9",border:"#7060c0"},
   "Kits":{hdr:"#8a4a1f",hdrTxt:"#fff",bucketHdr:"#a85c2a",bucketTxt:"#fff",light:"#f9efe6",border:"#c07a40"},
 };
+
+// Tray O.D. = tray I.D. + WALL (corrugate wall, per dimension).
+// SHIPPER_GAP: the MPL dimension list carries SHIPPER dimensions, not tray dimensions.
+// Across four trays where both a Harris spec I.D. and an MPL figure exist, the shipper
+// runs a consistent ~1.00" over the tray I.D. per dimension:
+//   NAT164A 15 × 11.125 vs 15.94 × 12.13   (0.94 / 1.01)
+//   NAT161A 11.125 × 7.50 vs 12.13 × 8.50  (1.01 / 1.00)
+//   NAT162A 11.625 × 8.75 vs 12.63 × 9.75  (1.01 / 1.00)
+//   NAT172A 7.625 × 5.875 vs 8.63 × 6.88   (1.01 / 1.01)
+// So where only a shipper figure is known, tray I.D. is estimated at shipper − 1.00.
+const SHIPPER_GAP = 1.0;
+
+// PDQ container presets.
+// `id`      = tray INSIDE dimension, read directly off the Harris Packaging spec sheet.
+// `shipper` = MPL shipper dimension; tray I.D. is ESTIMATED at shipper − SHIPPER_GAP.
+const PDQ_PRESETS = [
+  // ---- Tray I.D. verified on Harris spec sheet ----
+  {name:"Mist Tray, 12 ct",                     cad:"NAT172A", id:[7.625, 5.875]},
+  {name:"Scrub Tray, 12 ct",                    cad:"NAT161A", id:[11.125,7.50]},
+  {name:"Shave Oil Tray, 24 ct",                cad:"NAT185A", id:[11.25, 7.50]},
+  {name:"Mist Tray, 24 ct",                     cad:"NAT170A", id:[11.5625,7.625]},
+  {name:"Body / Hand Wash Tray, 12 ct",         cad:"NAT162A", id:[11.625,8.75]},
+  {name:"Lotion Pump Tray, 24 ct",              cad:"NAT173A", id:[14.25, 9.50]},
+  {name:"Scrub + Whipped Butter Tray, 24 ct",   cad:"NAT164A", id:[15.00, 11.125]},
+  // ---- Shipper dimension only — tray I.D. estimated ----
+  {name:"Scrub Duo Box, 2 ct",                            shipper:[3.70, 3.70]},
+  {name:"Shave Oil Duo Box, 2 ct",                        shipper:[4.63, 2.38]},
+  {name:"Body Wash Tray, 12 ct — narrow",                 shipper:[7.56, 5.69]},
+  {name:"Lotion + Wash Pump Tray, 16 ct",                 shipper:[10.75,10.75]},
+  {name:"Gift Set Tray, 4 ct",                            shipper:[11.00,9.06]},
+  {name:"Gift Set Tray, 8 ct",                            shipper:[11.25,10.00]},
+  {name:"Scrub Tray, 27 ct",                              shipper:[12.00,12.06]},
+  {name:"Whipped Butter Tray, 24 ct",                     shipper:[12.10,16.00]},
+  {name:"Foaming Wash Tumbler Tray, 12 ct",               shipper:[12.25,9.44]},
+  {name:"Floor Stand Display, 32 ct",                     shipper:[14.00,14.00]},
+  {name:"Scrub Tray, 24 ct — wide",                       shipper:[16.38,12.50]},
+  {name:"Foaming Wash Tray, 24 ct",                       shipper:[17.43,11.63]},
+  {name:"Foaming Wash + Hand Wash Tray, 24 ct",           shipper:[17.50,11.63]},
+  {name:"Shave Oil Tray, 24 ct — wide",                   shipper:[18.13,11.88]},
+  {name:"Foaming Wash Tray, 24 ct — wide",                shipper:[18.50,12.00]},
+  {name:"Lip Butter + Lip Mask Tray, 24 ct",              shipper:[18.60,14.00]},
+  {name:"Lip Butter Tray, 48 ct",                         shipper:[19.13,5.50]},
+  {name:"Scrub Tray, 24 ct — long",                       shipper:[23.50,8.50]},
+  {name:"Scrub Duo Kit Tray",                             shipper:[23.50,16.00]},
+  {name:"Scrub + Whipped Butter Tray, 20 ct",             shipper:[23.75,11.88]},
+  {name:"Scrub + Foaming Wash Tray, 22 ct",               shipper:[24.00,9.88]},
+  {name:"Floor Endcap Display, 140 ct",                   shipper:[32.00,11.50]},
+  {name:"Travel Assortment Tray, 72 ct",                  shipper:[35.88,14.50]},
+  {name:"Lotion Sidekick, 12 ct",                         shipper:[36.13,15.25]},
+  {name:"Mist + Shave Oil Tray, 50 ct",                   shipper:[42.13,11.50]},
+];
+// Resolve a preset to {il,iw,ol,ow,exact}. exact = tray I.D. came from a Harris spec sheet.
+// NOTE: the MPL dimension list is MIXED — some rows carry tray I.D. (711110 = 15.00 × 11.13,
+// matching NAT164A exactly), others carry shipper (711181 = 15.94 × 12.13, same tray, ~1" over).
+// Because the source of any given row is unknown, unverified figures are used AS GIVEN rather
+// than corrected in a direction that may be wrong. They are labeled unverified in the picker.
+// X3 is not a fallback here: Roy's FormSize review states "Physical fields not checked for
+// Kit / PDQ", and the PDQ SKUs carry a stamped default (12.25 × 8.375 × 7.25) on 19 of 23 rows.
+function resolvePreset(p){
+  const id = p.id ? p.id : [p.shipper[0], p.shipper[1]];
+  return {il:id[0], iw:id[1], ol:round4(id[0]+WALL), ow:round4(id[1]+WALL), exact:!!p.id};
+}
 const PALETTE = ["#e63946","#f4a261","#2a9d8f","#4361ee","#9b2335","#e9c46a","#7b2d8b","#43aa8b","#f79d65","#264653","#6a994e","#4895ef"];
 const GRID = 0.25, WALL = 0.4375;
 
@@ -675,6 +737,30 @@ export default function App() {
               ))}
             </div>
           </div>
+          {hdr("#4a5168","PDQ Preset")}
+          <div style={{padding:"8px 10px",background:"#fff",borderBottom:"1px solid #e0e0e0"}}>
+            <select value="" onChange={e=>{
+              const p=PDQ_PRESETS[e.target.value];
+              if(!p)return;
+              const r=resolvePreset(p);
+              upd({
+                tray:{l:r.il,w:r.iw},
+                ti:{l:String(r.il),w:String(r.iw)},
+                outer:{l:r.ol,w:r.ow},
+                oi:{l:String(r.ol),w:String(r.ow)},
+                pls:[],layoutStats:{cols:0,rows:0}
+              });
+              setSelectedId(null);
+            }} style={Object.assign({},inp,{fontSize:11})}>
+              <option value="">Select a PDQ to load dimensions…</option>
+              {PDQ_PRESETS.map((p,i)=>{
+                const r=resolvePreset(p);
+                return <option key={i} value={i}>{p.cad?"✓ ":"? "}{p.name} — {r.il}" × {r.iw}"{p.cad?" · I.D. "+p.cad:" · UNVERIFIED"}</option>;
+              })}
+            </select>
+            <div style={{fontSize:8.5,color:"#999",marginTop:4,textAlign:"center"}}>✓ = Harris spec I.D. &middot; ? = source unconfirmed, may be shipper &middot; clears layout</div>
+          </div>
+
           {hdr("#555","Outer Dimensions (in)")}
           <div style={{padding:"8px 10px",background:"#fff",borderBottom:"1px solid #e0e0e0"}}>
             <div style={{display:"flex",gap:6}}>
