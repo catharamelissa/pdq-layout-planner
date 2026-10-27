@@ -723,8 +723,8 @@ export default function App() {
   return (
     <div style={{display:"flex",height:"100vh",background:"#e8e8e8",fontFamily:"system-ui,sans-serif",overflow:"hidden",userSelect:resizing?"none":"auto"}}>
       {/* LEFT PANEL */}
-      <div style={{width:panelW,background:"#f0f0f0",display:"flex",flexDirection:"column",overflow:"hidden",flexShrink:0}}>
-        <div style={{padding:"10px 12px",background:"#1a1a1a"}}>
+      <div style={{width:panelW,background:"#f0f0f0",display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",flexShrink:0}}>
+        <div style={{padding:"10px 12px",background:"#1a1a1a",position:"sticky",top:0,zIndex:20,flexShrink:0}}>
           <div style={{fontSize:13,fontWeight:600,color:"#fff"}}>PDQ Layout Planner</div>
           <div style={{fontSize:10,color:"#aaa",marginTop:2}}>Product fitting & arrangement tool</div>
         </div>
@@ -825,7 +825,7 @@ export default function App() {
           <div style={{padding:"6px 8px",background:"#fff"}}><input placeholder="Search..." value={search} onChange={e=>setSearch(e.target.value)} style={inp}/></div>
         </div>
 
-        <div style={{flex:1,overflowY:"auto",background:"#f0f0f0",paddingBottom:6}}>
+        <div style={{background:"#f0f0f0",paddingBottom:6}}>
           {BRANDS.map(brand=>{
             const bc=BRAND_COLORS[brand];const bp=shown.filter(p=>p.brand===brand);if(!bp.length)return null;
             const bColl=collBrands.has(brand);const bkts={};
