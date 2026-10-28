@@ -114,7 +114,8 @@ const PRODUCTS = [
   // Kits — generic form-based configurations. Weight = Case Wt (lbs) ÷ Master Case qty.
   {id:"k_01",brand:"Kits",bucket:"Kits",name:"Lip Butter Trio (3 pc)", cat:"Kit", l:2.44, w:1.88, wt:0.163},
   {id:"k_02",brand:"Kits",bucket:"Kits",name:"Lip Scrub + Lip Butter Duo Kit (3 pc)", cat:"Kit", l:6.50, w:1.50, wt:0.150},
-  {id:"k_03",brand:"Kits",bucket:"Kits",name:"Travel Scrub Quad (4 pc)", cat:"Kit", l:2.00, w:2.00, wt:1.333},
+  {id:"k_03",brand:"Kits",bucket:"Kits",name:"1x4 Travel Scrub Quad (4 pc)", cat:"Kit", l:2.00, w:2.00, wt:1.333},
+  {id:"k_03b",brand:"Kits",bucket:"Kits",name:"2x2 Travel Scrub Quad (4 pc)", cat:"Kit", l:4.00, w:2.00, wt:1.333},
   {id:"k_04",brand:"Kits",bucket:"Kits",name:"Mini Scrub Trio (3 pc)", cat:"Kit", l:3.00, w:3.00, wt:1.650},
   {id:"k_06",brand:"Kits",bucket:"Kits",name:"Scrub + Whipped Butter + Lip Butter Kit (3 pc)", cat:"Kit", l:3.00, w:3.00, wt:1.650},
   {id:"k_07",brand:"Kits",bucket:"Kits",name:"Mini Wash + Mist + Scrub + Shave Oil Kit (4 pc)", cat:"Kit", l:5.00, w:2.1875, wt:1.033},
